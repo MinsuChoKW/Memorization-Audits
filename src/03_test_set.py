@@ -11,6 +11,7 @@ Outputs in output/
   test_elicitation_choices.csv  information condition, number of samples, recalibration variants, full text
   test_model_pairs.csv          paired differences between every two elicited forecasts
   test_rounds.csv               scores by release round
+  test_sample_consistency.csv   consistency of the five samples per claim in the evidence condition
   summary_info.csv              sample sizes, recalibration parameters, single- versus multi-claim papers"""
 import numpy as np
 import pandas as pd
@@ -154,6 +155,31 @@ def by_round(t):
     return pd.DataFrame(out)
 
 
+def icc_absolute(X):
+    """Two-way random-effects intraclass correlations for absolute agreement (Shrout & Fleiss, 1979),
+    for a single sample, ICC(2,1), and for the mean of the k samples, ICC(2,k). X: claims x samples."""
+    n, k = X.shape
+    gm = X.mean()
+    msr = k * ((X.mean(1) - gm) ** 2).sum() / (n - 1)
+    msc = n * ((X.mean(0) - gm) ** 2).sum() / (k - 1)
+    mse = ((X - X.mean(1, keepdims=True) - X.mean(0, keepdims=True) + gm) ** 2).sum() / ((n - 1) * (k - 1))
+    return (msr - mse) / (msr + (k - 1) * mse + k * (msc - mse) / n), (msr - mse) / (msr + (msc - mse) / n)
+
+
+def sample_consistency():
+    """Agreement between the J = 5 stated probabilities of each model on the test claims (evidence condition)."""
+    rows = []
+    for nm, mid in MODELS.items():
+        r = on_test(read_forecasts, "stats", mid)
+        r["probability"] = pd.to_numeric(r.probability, errors="coerce")
+        X = r.pivot_table(index="claim_uid", columns="sample", values="probability").dropna().values
+        cors = [np.corrcoef(X[:, a], X[:, b])[0, 1] for a in range(X.shape[1]) for b in range(a + 1, X.shape[1])]
+        icc1, icck = icc_absolute(X)
+        rows.append({"model": nm, "claims": X.shape[0], "samples": X.shape[1], "mean_pairwise_r": np.mean(cors),
+                     "min_pairwise_r": np.min(cors), "max_pairwise_r": np.max(cors), "ICC_2_1": icc1, "ICC_2_k": icck})
+    return pd.DataFrame(rows)
+
+
 def main():
     OUTPUT.mkdir(exist_ok=True)
     t, dev, info = predictions()
@@ -168,6 +194,7 @@ def main():
     t = pd.read_csv(OUTPUT / "test_predictions.csv")
     model_pairs(t).to_csv(OUTPUT / "test_model_pairs.csv", index=False)
     by_round(t).to_csv(OUTPUT / "test_rounds.csv", index=False)
+    sample_consistency().to_csv(OUTPUT / "test_sample_consistency.csv", index=False)
 
     pd.set_option("display.width", 220)
     cols = ["forecast", "weighting", "Brier", "Brier_lo", "Brier_hi", "AUC", "AUC_lo", "AUC_hi", "dBrier", "dBrier_lo",
