@@ -1,4 +1,4 @@
-# llm-replication-audit
+# LLM-Replication-Audit
 
 Code, prompts and stored model responses for eliciting probabilistic forecasts of replication outcomes from large language models, auditing the forecasts for recalled outcomes, and scoring them. The forecasts come from five models (Claude Opus 5.5, Claude Sonnet 5.5, Claude Haiku 4.5, GPT-6.2 Astra and GPT-6.2 Sol) on a development set of published replications and on a test set of replications whose outcomes were released separately in two rounds.
 
