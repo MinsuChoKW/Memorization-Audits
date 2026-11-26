@@ -1,0 +1,24 @@
+# Input data are not distributed (see data/README.md)
+data/raw/**
+!data/raw/.gitkeep
+!data/raw/rounds/
+!data/raw/rounds/.gitkeep
+data/processed/**
+!data/processed/.gitkeep
+
+# Results are produced by the analysis steps; some contain test-set outcomes, which are not redistributed
+output/**
+!output/.gitkeep
+
+# API keys
+*.rtf
+*api-key*
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
